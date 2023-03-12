@@ -18,6 +18,7 @@ repositories {
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("org.apache.zookeeper:zookeeper:3.8.1")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 
