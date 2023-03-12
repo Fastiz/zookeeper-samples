@@ -6,6 +6,7 @@ import kotlinx.coroutines.CompletableDeferred
 import org.apache.zookeeper.CreateMode
 import org.apache.zookeeper.WatchedEvent
 import org.apache.zookeeper.Watcher
+import org.apache.zookeeper.ZooDefs.Ids.OPEN_ACL_UNSAFE
 import org.apache.zookeeper.ZooKeeper
 
 class Barrier(
@@ -40,7 +41,7 @@ class Barrier(
     }
 
     fun close() {
-        zooKeeper.create(barrierName, byteArrayOf(), emptyList(), CreateMode.EPHEMERAL)
+        zooKeeper.create(barrierName, byteArrayOf(), OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL)
     }
 
     fun open() {
