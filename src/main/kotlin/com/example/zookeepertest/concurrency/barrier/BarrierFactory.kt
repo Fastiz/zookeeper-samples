@@ -1,4 +1,4 @@
-package com.example.zookeepertest.concurrency
+package com.example.zookeepertest.concurrency.barrier
 
 import com.example.zookeepertest.presentation.WatchedEventObservable
 import org.apache.zookeeper.ZooKeeper

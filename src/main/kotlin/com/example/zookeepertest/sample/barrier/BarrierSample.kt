@@ -1,6 +1,6 @@
 package com.example.zookeepertest.sample.barrier
 
-import com.example.zookeepertest.concurrency.BarrierFactory
+import com.example.zookeepertest.concurrency.barrier.BarrierFactory
 import com.example.zookeepertest.sample.barrier.runner.BarrierSampleRunnerFactory
 import kotlinx.coroutines.runBlocking
 import org.springframework.stereotype.Component

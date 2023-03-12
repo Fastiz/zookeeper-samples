@@ -1,6 +1,6 @@
 package com.example.zookeepertest.sample.barrier.runner
 
-import com.example.zookeepertest.concurrency.Barrier
+import com.example.zookeepertest.concurrency.barrier.Barrier
 import java.util.logging.Logger
 
 class BarrierOpenRunner : BarrierRunner {
