@@ -1,6 +1,7 @@
 package com.example.zookeepertest.concurrency.barrier
 
 import com.example.zookeepertest.common.observable.ObserverBuilder
+import com.example.zookeepertest.concurrency.WatchedEventObservableBuilder.filterByPathAndEvent
 import com.example.zookeepertest.presentation.WatchedEventObservable
 import kotlinx.coroutines.CompletableDeferred
 import org.apache.zookeeper.CreateMode
@@ -17,19 +18,16 @@ class Barrier(
     suspend fun enter() {
         val existsWatcher = CompletableDeferred<Unit>()
 
-        val existsWatchObserver = ObserverBuilder.buildObserverFromLambda<WatchedEvent> { value ->
-            if (value.path != barrierName) {
-                return@buildObserverFromLambda
-            }
-
-            if (value.type != Watcher.Event.EventType.NodeDeleted) {
-                return@buildObserverFromLambda
-            }
-
+        val existsWatchObserver = ObserverBuilder.buildObserverFromLambda<WatchedEvent> {
             existsWatcher.complete(Unit)
         }
 
-        val unsubscriptionCallback = watchedEventObservable.register(existsWatchObserver)
+        val unsubscriptionCallback = watchedEventObservable
+            .filterByPathAndEvent(
+                path = barrierName,
+                eventType = Watcher.Event.EventType.NodeDeleted
+            )
+            .register(existsWatchObserver)
 
         val exists = zooKeeper.exists(barrierName, true)
 
