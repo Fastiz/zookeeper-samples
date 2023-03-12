@@ -17,10 +17,18 @@ class DoubleBarrier(
     private val watchedEventObservable: WatchedEventObservable,
     private val doubleBarrierName: String
 ) {
-    lateinit var childPath: String
+    lateinit var childName: String
     private val childPrefixPath = "$doubleBarrierName/child-"
 
     suspend fun enter() {
+        try {
+            zooKeeper.create(doubleBarrierName, byteArrayOf(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT)
+        } catch (keeperException: KeeperException) {
+            if (keeperException.code() != KeeperException.Code.NODEEXISTS) {
+                throw keeperException
+            }
+        }
+
         val readyPath = "$doubleBarrierName/ready"
 
         val existsWatcher = CompletableDeferred<Unit>()
@@ -43,12 +51,14 @@ class DoubleBarrier(
                 return
             }
 
-            zooKeeper.create(
+            val childPath = zooKeeper.create(
                 childPrefixPath,
                 byteArrayOf(),
                 ZooDefs.Ids.OPEN_ACL_UNSAFE,
                 CreateMode.EPHEMERAL_SEQUENTIAL
             )
+
+            childName = childPath.removePrefix("$doubleBarrierName/")
 
             val children = zooKeeper.getChildren(doubleBarrierName, false)
 
@@ -68,32 +78,40 @@ class DoubleBarrier(
         }
     }
 
-    // TODO: figure out what to do with the READY children
     suspend fun leave() {
+        try {
+            zooKeeper.delete("$doubleBarrierName/ready", -1)
+        } catch (keeperException: KeeperException) {
+            if (keeperException.code() != KeeperException.Code.NONODE) {
+                throw keeperException
+            }
+        }
+
         val children = zooKeeper.getChildren(doubleBarrierName, false)
+            .filterNot { it == "ready" }
 
         if (children.isEmpty()) {
             return
         }
 
-        if (children.size == 1 && children[0] == childPath) {
-            zooKeeper.delete(childPath, -1)
+        if (children.size == 1 && children[0] == childName) {
+            zooKeeper.delete("$doubleBarrierName/$childName", -1)
             return
         }
 
         val lowestChildren = children.minBy {
-            val childNumber = it.substringAfter(childPrefixPath).toInt()
+            val childNumber = it.substringAfter("child-").trim('0').toInt()
             childNumber
         }
 
-        val waitOnPath = if (childPath == lowestChildren) {
+        val waitOnPath = if (childName == lowestChildren) {
             val highestChildren = children.maxBy {
-                val childNumber = it.substringAfter(childPrefixPath).toInt()
+                val childNumber = it.substringAfter("child-").trim('0').toInt()
                 childNumber
             }
             highestChildren
         } else {
-            zooKeeper.delete(childPath, -1)
+            zooKeeper.delete("$doubleBarrierName/$childName", -1)
             lowestChildren
         }
 
@@ -105,15 +123,20 @@ class DoubleBarrier(
 
         val unsubscriptionCallback = watchedEventObservable
             .filterByPathAndEvent(
-                path = waitOnPath,
+                path = "$doubleBarrierName/$waitOnPath",
                 eventType = Watcher.Event.EventType.NodeDeleted
             )
             .register(existsWatchObserver)
 
+        val waitOnPathExists = zooKeeper.exists("$doubleBarrierName/$waitOnPath", true)
+
         try {
-            existsWatcher.await()
+            if (waitOnPathExists != null) {
+                existsWatcher.await()
+            }
+
             return leave()
-        }finally {
+        } finally {
             unsubscriptionCallback.invoke()
         }
     }

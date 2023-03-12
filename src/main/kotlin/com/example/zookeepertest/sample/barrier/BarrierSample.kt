@@ -1,6 +1,7 @@
 package com.example.zookeepertest.sample.barrier
 
 import com.example.zookeepertest.concurrency.barrier.BarrierFactory
+import com.example.zookeepertest.sample.SampleRunner
 import com.example.zookeepertest.sample.barrier.runner.BarrierSampleRunnerFactory
 import kotlinx.coroutines.runBlocking
 import org.springframework.stereotype.Component
@@ -9,9 +10,9 @@ import org.springframework.stereotype.Component
 class BarrierSample(
     val barrierFactory: BarrierFactory,
     val barrierSampleRunnerFactory: BarrierSampleRunnerFactory,
-) {
-    fun run(args: List<String>) {
-        val (clientName, runnerModeDto) = args
+) : SampleRunner {
+    override fun run(args: List<String>) {
+        val (_, clientName, runnerModeDto) = args
 
         val runnerMode = when (runnerModeDto) {
             "open" -> BarrierSampleRunMode.Open
