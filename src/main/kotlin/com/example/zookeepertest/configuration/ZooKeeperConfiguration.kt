@@ -1,6 +1,6 @@
 package com.example.zookeepertest.configuration
 
-import org.apache.zookeeper.Watcher
+import com.example.zookeepertest.presentation.WatchedEventObservable
 import org.apache.zookeeper.ZooKeeper
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 class ZooKeeperConfiguration(
-    val watcher: Watcher,
     @param:Value("\${zookeeper.connectString}")
     val connectString: String,
     @param:Value("\${zookeeper.sessionTimeout}")
@@ -16,7 +15,7 @@ class ZooKeeperConfiguration(
 ) {
 
     @Bean
-    fun zooKeeper(): ZooKeeper {
+    fun zooKeeper(watcher: WatchedEventObservable): ZooKeeper {
         return ZooKeeper(connectString, sessionTimeout, watcher)
     }
 }

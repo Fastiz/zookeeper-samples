@@ -1,16 +1,24 @@
 package com.example.zookeepertest.common.observable
 
-class Subject<T> : Observable<T>(), Observer<T> {
+class Subject<T> : Observable<T>, Observer<T> {
+    private val basicObservable = BasicObservable<T>()
+
+    override fun register(observer: Observer<T>): UnregisterCallback {
+        return basicObservable.register(observer)
+    }
 
     override fun next(value: T) {
-        observers.forEach { it.value.next(value) }
+        basicObservable.getObserversIterator()
+            .forEach { it.next(value) }
     }
 
     override fun complete() {
-        observers.forEach { it.value.complete() }
+        basicObservable.getObserversIterator()
+            .forEach { it.complete() }
     }
 
     override fun error() {
-        observers.forEach { it.value.error() }
+        basicObservable.getObserversIterator()
+            .forEach { it.error() }
     }
 }
