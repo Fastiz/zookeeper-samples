@@ -17,9 +17,10 @@ class DoubleBarrier(
     private val watchedEventObservable: WatchedEventObservable,
     private val doubleBarrierName: String
 ) {
-    suspend fun enter() {
-        val childrenPrefixPath = "$doubleBarrierName/child-"
+    lateinit var childPath: String
+    private val childPrefixPath = "$doubleBarrierName/child-"
 
+    suspend fun enter() {
         val readyPath = "$doubleBarrierName/ready"
 
         val existsWatcher = CompletableDeferred<Unit>()
@@ -42,7 +43,12 @@ class DoubleBarrier(
                 return
             }
 
-            zooKeeper.create(childrenPrefixPath, byteArrayOf(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL)
+            zooKeeper.create(
+                childPrefixPath,
+                byteArrayOf(),
+                ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                CreateMode.EPHEMERAL_SEQUENTIAL
+            )
 
             val children = zooKeeper.getChildren(doubleBarrierName, false)
 
@@ -62,7 +68,53 @@ class DoubleBarrier(
         }
     }
 
+    // TODO: figure out what to do with the READY children
     suspend fun leave() {
-        TODO()
+        val children = zooKeeper.getChildren(doubleBarrierName, false)
+
+        if (children.isEmpty()) {
+            return
+        }
+
+        if (children.size == 1 && children[0] == childPath) {
+            zooKeeper.delete(childPath, -1)
+            return
+        }
+
+        val lowestChildren = children.minBy {
+            val childNumber = it.substringAfter(childPrefixPath).toInt()
+            childNumber
+        }
+
+        val waitOnPath = if (childPath == lowestChildren) {
+            val highestChildren = children.maxBy {
+                val childNumber = it.substringAfter(childPrefixPath).toInt()
+                childNumber
+            }
+            highestChildren
+        } else {
+            zooKeeper.delete(childPath, -1)
+            lowestChildren
+        }
+
+        val existsWatcher = CompletableDeferred<Unit>()
+
+        val existsWatchObserver = ObserverBuilder.buildObserverFromLambda<WatchedEvent> {
+            existsWatcher.complete(Unit)
+        }
+
+        val unsubscriptionCallback = watchedEventObservable
+            .filterByPathAndEvent(
+                path = waitOnPath,
+                eventType = Watcher.Event.EventType.NodeDeleted
+            )
+            .register(existsWatchObserver)
+
+        try {
+            existsWatcher.await()
+            return leave()
+        }finally {
+            unsubscriptionCallback.invoke()
+        }
     }
 }
