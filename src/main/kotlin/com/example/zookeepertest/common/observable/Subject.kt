@@ -11,14 +11,4 @@ class Subject<T> : Observable<T>, Observer<T> {
         basicObservable.getObserversIterator()
             .forEach { it.next(value) }
     }
-
-    override fun complete() {
-        basicObservable.getObserversIterator()
-            .forEach { it.complete() }
-    }
-
-    override fun error() {
-        basicObservable.getObserversIterator()
-            .forEach { it.error() }
-    }
 }
