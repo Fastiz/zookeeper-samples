@@ -1,7 +1,7 @@
 package com.example.zookeepertest.concurrency.barrier
 
 import com.example.zookeepertest.common.observable.ObserverBuilder
-import com.example.zookeepertest.concurrency.WatchedEventObservableBuilder.filterByPathAndEvent
+import com.example.zookeepertest.presentation.WatchedEventObservableBuilder.filterByPathAndEvent
 import com.example.zookeepertest.presentation.WatchedEventObservable
 import kotlinx.coroutines.CompletableDeferred
 import org.apache.zookeeper.CreateMode
